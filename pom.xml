@@ -270,5 +270,9 @@
 			<id>jitpack.io</id>
 			<url>https://jitpack.io</url>
 		</repository>
+		<repository>
+			<id>local-maven-repo</id>
+			<url>file:///${project.basedir}/third-party/corpus-ia/src-java/corpus-internet-archive/third-party</url>
+		</repository>
 	</repositories>
 </project>

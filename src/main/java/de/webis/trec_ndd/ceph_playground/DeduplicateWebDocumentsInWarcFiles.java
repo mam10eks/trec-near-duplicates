@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 
 import de.webis.corpus_internet_archive.S3Files;
 import de.webis.corpus_internet_archive.WARCReader;
-import de.webis.corpus_internet_archive.WarcRecord;
 import de.webis.trec_ndd.similarity.TextProfileSignatureSimilarity;
 import de.webis.trec_ndd.spark.DocumentGroup;
 import lombok.Data;
@@ -46,7 +45,7 @@ public class DeduplicateWebDocumentsInWarcFiles {
 		}
 	}
 	
-	private static Iterator<WarcRecord> parse(S3ObjectSummary i, S3Files s3Files) {
+	private static Iterator<WARCReader.Record> parse(S3ObjectSummary i, S3Files s3Files) {
 		try {
 			return WARCReader.parse(s3Files.content(i));
 		} catch(Exception e) {
@@ -78,11 +77,11 @@ public class DeduplicateWebDocumentsInWarcFiles {
 		private final String url;
 		private final String crawlingTimestamp;
 		
-		public WebDocument(WarcRecord record) {
+		public WebDocument(WARCReader.Record record) {
 			String content = record.getContent();
 			this.hash = TextProfileSignatureSimilarity.textProfileSignatureString(content);
-			this.url = record.getHeader().getHeaderMetadataItem("WARC-Target-URI");
-			this.crawlingTimestamp = record.getHeader().getHeaderMetadataItem("WARC-Date");
+			this.url = record.getUri();
+			this.crawlingTimestamp = record.getDate();
 		}
 		
 		public String getId() {
