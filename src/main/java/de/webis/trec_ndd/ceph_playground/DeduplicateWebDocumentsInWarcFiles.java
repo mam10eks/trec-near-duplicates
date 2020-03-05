@@ -2,6 +2,7 @@ package de.webis.trec_ndd.ceph_playground;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -9,6 +10,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.ImmutableList;
 
 import de.webis.corpus_internet_archive.S3Files;
@@ -32,8 +34,8 @@ public class DeduplicateWebDocumentsInWarcFiles {
 		);
 
 		try(JavaSparkContext sc = context()) {
-			JavaRDD<DocumentGroup> rdd = sc.parallelize(s3Files.filesInBucket().subList(0, 1000))
-				.flatMap(i -> WARCReader.parse(s3Files.content(i)))
+			JavaRDD<DocumentGroup> rdd = sc.parallelize(s3Files.filesInBucket().subList(0, 10))
+				.flatMap(i -> parse(i, s3Files))
 				.map(i -> new WebDocument(i))
 				.groupBy(i -> i.getHash())
 				.map(i -> docGroup(i))
@@ -41,6 +43,14 @@ public class DeduplicateWebDocumentsInWarcFiles {
 			
 			rdd.map(i -> i.toString())
 				.saveAsTextFile(parsedArgs.getString("outputFile"));
+		}
+	}
+	
+	private static Iterator<WarcRecord> parse(S3ObjectSummary i, S3Files s3Files) {
+		try {
+			return WARCReader.parse(s3Files.content(i));
+		} catch(Exception e) {
+			throw new RuntimeException("Investigate " + i.getBucketName() + " -> " + i.getKey(), e);
 		}
 	}
 	
