@@ -154,7 +154,7 @@ clean-stuff:
 	rm -Rf /tmp/.run*
 
 install-third-party: checkout-submodules
-	echo "currently no third-party :)"
+	cd third-party/corpus-ia/src-java/corpus-internet-archive/ && mvn clean install
 
 checkout-submodules:
 	git submodule update --init --recursive

@@ -1,0 +1,3 @@
+[submodule "third-party/corpus-ia"]
+	path = third-party/corpus-ia
+	url = git@webis.uni-weimar.de:corpora/corpus-internet-archive.git
