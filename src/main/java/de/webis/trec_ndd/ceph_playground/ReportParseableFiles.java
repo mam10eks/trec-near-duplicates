@@ -53,7 +53,7 @@ public class ReportParseableFiles {
 			try {
 				docCount = Iterators.size(WARCReader.parse(files.content(summary)));
 				parseable = true;
-			} catch(Error e) {}
+			} catch(Throwable e) {}
 		}
 		
 		@Override
