@@ -49,11 +49,11 @@ public class ReportParseableFiles {
 			key = summary.getKey();
 			parseable = false;
 			docCount = null;
-			
+
 			try {
 				docCount = Iterators.size(WARCReader.parse(files.content(summary)));
 				parseable = true;
-			} catch(Exception e) {}
+			} catch(Error e) {}
 		}
 		
 		@Override
