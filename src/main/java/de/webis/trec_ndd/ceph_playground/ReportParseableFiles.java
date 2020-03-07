@@ -6,6 +6,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
+import avro.shaded.com.google.common.collect.Iterators;
 import de.webis.corpus_internet_archive.S3Files;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -41,14 +42,18 @@ public class ReportParseableFiles {
 		private String key;
 		private Boolean parseable;
 		private String warcVersion;
+		private Integer documentCount;
 		
 		public FileReport(S3ObjectSummary summary, S3Files files) {
 			bucketName = summary.getBucketName();
 			key = summary.getKey();
 			parseable = false;
+			documentCount = null;
+			warcVersion = null;
 
 			try {
 				warcVersion = files.warcVersion(summary).name();
+				documentCount = Iterators.size(files.getAllRecords(summary));
 				parseable = true;
 			} catch(Throwable e) {}
 		}
