@@ -50,6 +50,9 @@ public class ReportParseableFiles {
 			parseable = false;
 			documentCount = null;
 			warcVersion = null;
+			
+			System.out.println("--> (" + summary.getBucketName() + ";" + summary.getKey() + ")");
+			System.err.println("--> (" + summary.getBucketName() + ";" + summary.getKey() + ")");
 
 			try {
 				warcVersion = files.warcVersion(summary).name();
