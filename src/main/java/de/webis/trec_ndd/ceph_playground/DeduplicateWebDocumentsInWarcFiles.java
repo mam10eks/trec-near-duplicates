@@ -2,6 +2,7 @@ package de.webis.trec_ndd.ceph_playground;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,6 +18,7 @@ import de.webis.corpus_internet_archive.S3Files;
 import de.webis.corpus_internet_archive.WARCReader;
 import de.webis.trec_ndd.similarity.TextProfileSignatureSimilarity;
 import de.webis.trec_ndd.spark.DocumentGroup;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -25,7 +27,7 @@ import scala.Tuple2;
 
 public class DeduplicateWebDocumentsInWarcFiles {
 	public static void main(String[] args) {
-		Namespace parsedArgs = parseArguments(args);
+		Namespace parsedArgs = parseArguments(args);		
 		S3Files s3Files = new S3Files(
 			parsedArgs.getString("accessKey"),
 			parsedArgs.getString("secretKey"),
@@ -35,7 +37,6 @@ public class DeduplicateWebDocumentsInWarcFiles {
 		try(JavaSparkContext sc = context()) {
 			JavaRDD<DocumentGroup> rdd = sc.parallelize(s3Files.filesInBucket().subList(0, 10))
 				.flatMap(i -> parse(i, s3Files))
-				.map(i -> new WebDocument(i))
 				.groupBy(i -> i.getHash())
 				.map(i -> docGroup(i))
 				.filter(dg -> dg.ids.size() > 1);
@@ -45,11 +46,25 @@ public class DeduplicateWebDocumentsInWarcFiles {
 		}
 	}
 	
-	private static Iterator<WARCReader.Record> parse(S3ObjectSummary i, S3Files s3Files) {
+	private static Iterator<WebDocument> parse(S3ObjectSummary i, S3Files s3Files) {
 		try {
-			return WARCReader.parse(s3Files.content(i));
+			Iterator<WARCReader.Record> ret = WARCReader.parse(s3Files.rawContent(i));
+			
+			return new Iterator<DeduplicateWebDocumentsInWarcFiles.WebDocument>() {
+				@Override
+				public boolean hasNext() {
+					return ret.hasNext();
+				}
+
+				@Override
+				public WebDocument next() {
+					return new WebDocument(ret.next());
+				}
+			};
 		} catch(Exception e) {
-			throw new RuntimeException("Investigate " + i.getBucketName() + " -> " + i.getKey(), e);
+			return new ArrayList<WebDocument>(Arrays.asList(
+					new WebDocument("EXCEPTION", "Investigate " + i.getBucketName() + " -> " + i.getKey(), "UNKNOWN")
+			)).iterator();
 		}
 	}
 	
@@ -71,6 +86,7 @@ public class DeduplicateWebDocumentsInWarcFiles {
 	}
 
 	@Data
+	@AllArgsConstructor
 	@SuppressWarnings("serial")
 	public static class WebDocument implements Serializable {
 		private final String hash;

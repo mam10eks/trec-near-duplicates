@@ -5,10 +5,8 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.google.common.collect.Iterators;
 
 import de.webis.corpus_internet_archive.S3Files;
-import de.webis.corpus_internet_archive.WARCReader;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -42,16 +40,15 @@ public class ReportParseableFiles {
 		private String bucketName;
 		private String key;
 		private Boolean parseable;
-		private Integer docCount;
+		private String warcVersion;
 		
 		public FileReport(S3ObjectSummary summary, S3Files files) {
 			bucketName = summary.getBucketName();
 			key = summary.getKey();
 			parseable = false;
-			docCount = null;
 
 			try {
-				docCount = Iterators.size(WARCReader.parse(files.content(summary)));
+				warcVersion = files.warcVersion(summary).name();
 				parseable = true;
 			} catch(Throwable e) {}
 		}
