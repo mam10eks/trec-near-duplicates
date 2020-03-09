@@ -2,6 +2,8 @@ package de.webis.trec_ndd.ceph_playground;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.archive.archivespark.sparkling.warc.WarcLoader;
+import org.archive.archivespark.sparkling.warc.WarcRecord;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -15,6 +17,7 @@ import lombok.SneakyThrows;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.Namespace;
+import scala.collection.Iterator;
 
 public class ReportParseableFiles {
 	
@@ -55,8 +58,16 @@ public class ReportParseableFiles {
 			System.err.println("--> (" + summary.getBucketName() + ";" + summary.getKey() + ")");
 
 			try {
+				Iterator<WarcRecord> iter = WarcLoader.load(files.rawContent(summary));
+				documentCount = 0;
+				while(iter.hasNext()) {
+					WarcRecord next = iter.next();
+					if(next.isResponse()) {
+						documentCount++;
+					}
+				}
+				
 				warcVersion = files.warcVersion(summary).name();
-				documentCount = Iterators.size(files.getAllRecords(summary));
 				parseable = true;
 			} catch(Throwable e) {}
 		}
