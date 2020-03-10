@@ -1,5 +1,7 @@
 package de.webis.trec_ndd.ceph_playground;
 
+import java.io.BufferedInputStream;
+
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.archive.archivespark.sparkling.warc.WarcLoader;
@@ -58,7 +60,7 @@ public class ReportParseableFiles {
 			System.err.println("--> (" + summary.getBucketName() + ";" + summary.getKey() + ")");
 
 			try {
-				Iterator<WarcRecord> iter = WarcLoader.load(files.rawContent(summary));
+				Iterator<WarcRecord> iter = WarcLoader.load(new BufferedInputStream(files.rawContent(summary)));
 				documentCount = 0;
 				while(iter.hasNext()) {
 					WarcRecord next = iter.next();
