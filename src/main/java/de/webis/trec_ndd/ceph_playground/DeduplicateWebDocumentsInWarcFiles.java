@@ -7,19 +7,23 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.archive.archivespark.sparkling.warc.WarcRecord;
 
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 
 import de.webis.corpus_internet_archive.S3Files;
-import de.webis.corpus_internet_archive.WARCReader;
+import de.webis.corpus_internet_archive.WarcUtil;
 import de.webis.trec_ndd.similarity.TextProfileSignatureSimilarity;
 import de.webis.trec_ndd.spark.DocumentGroup;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.SneakyThrows;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.Namespace;
@@ -46,24 +50,15 @@ public class DeduplicateWebDocumentsInWarcFiles {
 		}
 	}
 	
-	private static Iterator<WebDocument> parse(S3ObjectSummary i, S3Files s3Files) {
+	private static Iterator<WebDocument> parse(S3ObjectSummary summary, S3Files s3Files) {
 		try {
-			Iterator<WARCReader.Record> ret = WARCReader.parse(s3Files.rawContent(i));
-			
-			return new Iterator<DeduplicateWebDocumentsInWarcFiles.WebDocument>() {
-				@Override
-				public boolean hasNext() {
-					return ret.hasNext();
-				}
-
-				@Override
-				public WebDocument next() {
-					return new WebDocument(ret.next());
-				}
-			};
+			return Iterators.transform(
+					s3Files.getAllResponseRecords(summary),
+					i -> new WebDocument(i)
+				);
 		} catch(Exception e) {
 			return new ArrayList<WebDocument>(Arrays.asList(
-					new WebDocument("EXCEPTION", "Investigate " + i.getBucketName() + " -> " + i.getKey(), "UNKNOWN")
+					new WebDocument("EXCEPTION", "Investigate " + summary.getBucketName() + " -> " + summary.getKey(), "UNKNOWN")
 			)).iterator();
 		}
 	}
@@ -93,11 +88,12 @@ public class DeduplicateWebDocumentsInWarcFiles {
 		private final String url;
 		private final String crawlingTimestamp;
 		
-		public WebDocument(WARCReader.Record record) {
-			String content = record.getContent();
+		@SneakyThrows
+		public WebDocument(WarcRecord record) {
+			String content = IOUtils.toString(record.payload());
 			this.hash = TextProfileSignatureSimilarity.textProfileSignatureString(content);
-			this.url = record.getUri();
-			this.crawlingTimestamp = record.getDate();
+			this.url = record.url().get();
+			this.crawlingTimestamp = WarcUtil.extractDate(record);
 		}
 		
 		public String getId() {
